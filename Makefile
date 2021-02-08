@@ -4,4 +4,5 @@ bundle:
 		main.py \
 		requirements.txt \
 		src/core.py \
-		tests/*
+		configuration/configuration.py \
+		tests/* \
