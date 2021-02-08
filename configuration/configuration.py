@@ -1,0 +1,5 @@
+log_path = "kapacitor-jira-handler.log"
+log_level = "DEBUG"
+user = ""
+password = ""
+end_status = "Done"

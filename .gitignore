@@ -1,0 +1,10 @@
+venv*
+.licence
+docker-compose.yml
+.idea
+jiraVolume
+*.zip
+*.log
+*__pycache__
+# ignore phyton byte code
+*.pyc
