@@ -5,14 +5,29 @@ import logging
 
 logger = logging.getLogger('core')
 
+# api body template
+issue_dict = {
+    'project': {'key': ''},
+    'summary': '',
+    'description': '',
+    'issuetype': {'name': ''},
+    'labels': []
+}
 
-def parse_existing_issues(issues, summary) -> bool:
+
+def parse_issues_exists(issues, alert_id: str, alert_level: str) -> bool:
+    no_creation = False
+
     for issue in issues:
-        if issue['fields']['summary'] == summary and not str(issue['fields']['status']['name']) == end_status:
-            logger.debug('Issue with given summary already exists and is not set to {status}\n'
-                         'Please ensure that the end status <{status}> exists.'.format(status=end_status))
-            return True
-    return False
+        if alert_id in issue['fields']['labels'] and not str(issue['fields']['status']['name']) == end_status:
+            logger.debug('Issue with given id <{id}> already exists and is not set to {status}\n'
+                         'Please also ensure that the end status <{status}> exists.'.format(id=alert_id, status=end_status))
+            if alert_level not in issue['fields']['labels']:
+                issue_dict['issuekey'] = issue['key']
+                break
+            no_creation = True
+        break
+    return no_creation
 
 
 def create_jira_ticket(jira_host: str, jira_project_key: str, issue_type: str, alert_json) -> None:
@@ -23,14 +38,15 @@ def create_jira_ticket(jira_host: str, jira_project_key: str, issue_type: str, a
         search_issues_jql = "project={}".format(jira_project_key)
         issues = jira.jql(search_issues_jql)
 
+        # prepare issue api body
+        issue_dict['project']['key'] = jira_project_key
+        issue_dict['summary'] = alert_json['message']
+        issue_dict['description'] = alert_json['details'].replace('<br>', '\n')
+        issue_dict['issuetype']['name'] = issue_type
+        issue_dict['labels'] = [alert_json['id'], alert_json['level']]
+
         # create issue if not exists in the start status
-        if not parse_existing_issues(issues['issues'], alert_json['message']):
-            issue_dict = {
-                'project': {'key': '{}'.format(jira_project_key)},
-                'summary': alert_json['message'],
-                'description': alert_json['details'].replace('<br>', '\n'),
-                'issuetype': {'name': issue_type}
-            }
+        if not parse_issues_exists(issues['issues'], alert_json['id'], alert_json['level']):
             new_issue = jira.issue_create_or_update(fields=issue_dict)
             logger.debug('Issue "{}" has been created'.format(new_issue))
 
